@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Predicción Abandono - TF.js</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
+</head>
+<body>
+  <h2>Predicción de abandono (Asistencias / Faltas)</h2>
+
+  <label>Asistencias:</label>
+  <input id="asist" type="number" value="80" min="0"><br><br>
+
+  <label>Faltas:</label>
+  <input id="falt" type="number" value="3" min="0"><br><br>
+
+  <button id="btnPredict">Predecir</button>
+  <p id="out">Resultado: —</p>
+
+  <script>
+    let model;
+
+    async function loadModel() {
+      try {
+        // Cambia la ruta si tu carpeta tiene otro nombre
+        model = await tf.loadLayersModel('model.json');
+        console.log('Modelo cargado ✅');
+      } catch (err) {
+        console.error('Error cargando el modelo:', err);
+        document.getElementById('out').innerText = 'Error cargando el modelo. Revisa la consola.';
+      }
+    }
+
+    function getInputTensor() {
+      const asist = parseFloat(document.getElementById('asist').value);
+      const falt = parseFloat(document.getElementById('falt').value);
+
+      if (Number.isNaN(asist) || Number.isNaN(falt)) {
+        throw new Error('Ingresa valores numéricos válidos para asistencia y faltas.');
+      }
+
+      // Si durante el entrenamiento normalizaste/escaleaste, aplica la misma transformación aquí.
+      // Ejemplo (si usaste min-max): 
+      // const asistN = (asist - minA)/(maxA - minA);
+      // const faltN  = (falt  - minF)/(maxF - minF);
+      // return tf.tensor2d([[asistN, faltN]], [1,2]);
+
+      // Aquí se asume que el modelo fue entrenado con los valores "crudos".
+      return tf.tensor2d([[asist, falt]], [1, 2]);
+    }
+
+    async function predict() {
+      if (!model) {
+        alert('Modelo no cargado todavía.');
+        return;
+      }
+
+      let x;
+      try {
+        x = getInputTensor();
+      } catch (err) {
+        alert(err.message);
+        return;
+      }
+
+      // Predict: salida prob in [0,1] si la última capa fue sigmoid
+      const y = model.predict(x);
+      const prob = (await y.data())[0];
+
+      const label = prob >= 0.5 ? 'ABANDONA' : 'NO abandona';
+      document.getElementById('out').innerText =
+        `Probabilidad abandono: ${(prob*100).toFixed(1)}% → ${label}`;
+
+      // liberar tensores
+      x.dispose();
+      y.dispose();
+    }
+
+    document.getElementById('btnPredict').addEventListener('click', predict);
+
+    // Cargar modelo al inicio
+    loadModel();
+  </script>
+</body>
+</html>
