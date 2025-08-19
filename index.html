@@ -22,7 +22,7 @@
 
     async function loadModel() {
       try {
-        // Cambia la ruta si tu carpeta tiene otro nombre
+
         model = await tf.loadLayersModel('model.json');
         console.log('Modelo cargado ✅');
       } catch (err) {
@@ -39,13 +39,6 @@
         throw new Error('Ingresa valores numéricos válidos para asistencia y faltas.');
       }
 
-      // Si durante el entrenamiento normalizaste/escaleaste, aplica la misma transformación aquí.
-      // Ejemplo (si usaste min-max): 
-      // const asistN = (asist - minA)/(maxA - minA);
-      // const faltN  = (falt  - minF)/(maxF - minF);
-      // return tf.tensor2d([[asistN, faltN]], [1,2]);
-
-      // Aquí se asume que el modelo fue entrenado con los valores "crudos".
       return tf.tensor2d([[asist, falt]], [1, 2]);
     }
 
@@ -63,7 +56,6 @@
         return;
       }
 
-      // Predict: salida prob in [0,1] si la última capa fue sigmoid
       const y = model.predict(x);
       const prob = (await y.data())[0];
 
@@ -71,14 +63,12 @@
       document.getElementById('out').innerText =
         `Probabilidad abandono: ${(prob*100).toFixed(1)}% → ${label}`;
 
-      // liberar tensores
       x.dispose();
       y.dispose();
     }
 
     document.getElementById('btnPredict').addEventListener('click', predict);
 
-    // Cargar modelo al inicio
     loadModel();
   </script>
 </body>
